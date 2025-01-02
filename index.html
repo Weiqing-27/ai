@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <script src="index.js"></script>
+</head>
+
+<body>
+    <div id="app"></div>
+    <script>
+        // 全局配置
+        let config = {
+            appId: 'wx91d1c642c06ef838',//微信appId
+            baseUrl: 'http://localhost:8001/omo/vue/ai-tools',//重定向地址
+            afterUrl: 'https://weixinuat.sinokorealife.com.cn'//重定向地址
+        }
+        //获取链接地址携带的参数
+        function getUrlParam(url = window.location.href) {
+            url = decodeURIComponent(url);
+            const str = url.split('?')[1];
+            if (!str) return {};
+            const keys = str.split('&');
+            let obj = {};
+            keys.forEach((item, idx, data) => {
+                let arr = item.split('=');
+                obj[arr[0]] = arr[1];
+            });
+            return obj;
+        }
+        // 获取code参数
+        const code = getUrlParam().code
+        // 如果没有携带code参数，重定向至微信重定向地址
+        if (!code) {
+            const appId = config.appId;
+            const redirectUri = filterWechatRedirectUrl(window.location.href);
+            const wechatRedirectUrl = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect`;
+            console.log('重定向至微信', wechatRedirectUrl);
+            // window.location.href = wechatRedirectUrl;
+        } else {
+            // 如果携带code参数，用code参数调用登录接口
+            const loginUrl = config.afterUrl + '/omo/wxyy/wechat/getUserDept';
+            const params = {
+                code: code
+            };
+            console.log('code:', params.code);
+            $.ajax({
+                url: loginUrl,
+                type: 'POST',
+                data: params,
+                success: function (data) {
+                    console.log(data);
+                    
+                    const targetUrl = config.baseUrl + '?code=' + params.code;// + '&state=' + params.state;
+                    console.log('重定向至目标地址', targetUrl);
+                    // window.location.href = targetUrl;
+                },
+            });
+        }
+        //过滤链接地址（去掉微信重定向code、state参数，重新拼接）
+        function filterWechatRedirectUrl(url) {
+            let urlParam = getUrlParam(url);
+            delete urlParam.code;
+            delete urlParam.state;
+            let urlArr = url.split('?');
+            return urlArr[0] + formatUrlParam(urlParam);
+        }
+        // 格式化 URL 参数
+        function formatUrlParam(urlParam) {
+            let paramsStr = '';
+            if (urlParam) {
+                for (let key in urlParam) {
+                    if (paramsStr == '') {
+                        paramsStr = `?${key}=${urlParam[key]}`;
+                    } else {
+                        paramsStr += `&${key}=${urlParam[key]}`;
+                    }
+                }
+            }
+            return paramsStr;
+        }
+    </script>
+</body>
+
+</html>
